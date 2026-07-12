@@ -39,6 +39,8 @@ jobs:
         with:
           enable-cache: true
 
+      - name: Set up Aikido Safe Chain
+        uses: ./.github/actions/setup-safe-chain
       - name: Set up Python
         run: uv python install 3.13
 

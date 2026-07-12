@@ -11,6 +11,8 @@ jobs:
       - name: Checkout the repository
         uses: actions/checkout@v4
 
+      - name: Set up Aikido Safe Chain
+        uses: ./.github/actions/setup-safe-chain
       - name: Run hassfest validation
         uses: home-assistant/actions/hassfest@master
 
