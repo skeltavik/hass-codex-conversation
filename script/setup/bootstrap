@@ -29,7 +29,12 @@ fi
 log_header "Checking for uv"
 if ! command -v uv >/dev/null 2>&1; then
     log_info "UV not found, installing..."
-    pipx install uv
+    pipx install "uv>=0.13.4"
+fi
+
+if ! uv --version | python3 -c 'import sys; sys.exit(tuple(map(int, sys.stdin.read().split()[1].split("."))) < (0, 13, 4))'; then
+    log_error "uv >=0.13.4 is required before downloading dependencies. Update uv and retry."
+    exit 1
 fi
 
 log_header "Checking for Python virtual environment"
@@ -119,14 +124,14 @@ if [[ "$VENV_IS_EXTERNAL" == "true" ]]; then
 fi
 
 log_header "Installing development dependencies"
-uv sync --group dev
+uv sync --locked --group dev
 
 log_header "Installing test dependencies"
-uv sync --group test
+uv sync --locked --group test
 
 log_header "Installing runtime dependencies"
 if [[ -s requirements.txt ]] && grep -qv '^#' requirements.txt | grep -q '[^[:space:]]'; then
-    uv sync
+    uv sync --locked
 else
     log_info "No runtime dependencies defined (this is normal for blueprints)"
 fi
@@ -138,6 +143,15 @@ if [[ -z "$HA_VERSION" ]]; then
     exit 1
 fi
 HA_CORE_BASE_URL="https://raw.githubusercontent.com/home-assistant/core/${HA_VERSION}"
+
+# Apply the same security floors to pip installs of upstream HA requirements.
+export UV_OVERRIDE="$VIRTUAL_ENV/locked-requirements.txt"
+python - <<'PY' > "$UV_OVERRIDE"
+import tomllib
+
+with open("pyproject.toml", "rb") as config:
+    print("\n".join(tomllib.load(config)["tool"]["uv"]["override-dependencies"]))
+PY
 
 log_header "Installing Home Assistant ${HA_VERSION} runtime dependencies"
 mkdir -p "/tmp/homeassistant"
