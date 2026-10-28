@@ -142,8 +142,6 @@ if [[ -z "$HA_VERSION" ]]; then
     log_error "HA_VERSION not set and could not be determined from hacs.json"
     exit 1
 fi
-HA_CORE_BASE_URL="https://raw.githubusercontent.com/home-assistant/core/${HA_VERSION}"
-
 # Apply the same security floors to pip installs of upstream HA requirements.
 export UV_OVERRIDE="$VIRTUAL_ENV/locked-requirements.txt"
 python - <<'PY' > "$UV_OVERRIDE"
@@ -153,24 +151,9 @@ with open("pyproject.toml", "rb") as config:
     print("\n".join(tomllib.load(config)["tool"]["uv"]["override-dependencies"]))
 PY
 
-log_header "Installing Home Assistant ${HA_VERSION} runtime dependencies"
-mkdir -p "/tmp/homeassistant"
-curl -fsSL "${HA_CORE_BASE_URL}/homeassistant/package_constraints.txt" -o "/tmp/homeassistant/package_constraints.txt"  # constraints for requirements files
-curl -fsSL "${HA_CORE_BASE_URL}/requirements.txt" -o "/tmp/requirements.txt"  # required by requirements_all.txt
-curl -fsSL "${HA_CORE_BASE_URL}/requirements_all.txt" -o "/tmp/requirements_all.txt"
-uv pip install --requirement "/tmp/requirements_all.txt"
-
-log_header "Installing Home Assistant ${HA_VERSION} test dependencies"
-curl -fsSL "${HA_CORE_BASE_URL}/requirements_test_pre_commit.txt" -o "/tmp/requirements_test_pre_commit.txt"  # required by requirements_test.txt
-curl -fsSL "${HA_CORE_BASE_URL}/requirements_test.txt" -o "/tmp/requirements_test.txt"
-uv pip install --requirement "/tmp/requirements_test.txt"
-
+# Project test dependencies are locked above; HA installs its own core dependencies.
 log_header "Installing Home Assistant ${HA_VERSION} core"
 uv pip install "homeassistant==${HA_VERSION}"
-
-set +e
-rm -rf /tmp/requirements*.txt /tmp/homeassistant/ || log_warning "Failed to clean up temporary files"
-set -e
 
 # Only install pre-commit hooks in local development, not in CI
 # GITHUB_ACTIONS is always set to "true" in GitHub Actions environments
