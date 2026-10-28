@@ -25,6 +25,15 @@ test = [
     "async-timeout",
 ]
 
+[tool.uv]
+# Keep the development stack patched despite Home Assistant's older exact pins.
+override-dependencies = [
+    "certifi>=2026.10.19",
+    "pillow>=13.0.0",
+    "pip>=26.2.2",
+    "uv>=0.13.4",
+]
+
 # ── Ruff (replaces flake8 + isort) ────────────────────────────────────────────
 
 [tool.ruff]
